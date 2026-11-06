@@ -50,3 +50,55 @@ final_map <- world_countries |>
 final_map # Result !!
 ```
 
+```{r}
+# Great Work Azzedine !
+
+view(world_countries)
+view(clean_csv)
+
+# We just need to enhance something ... joining over names of countries columns will cause underlying errors ! from the first look we can see (Bolivia) in world_countries called "Bolivia (Plurinational State of) " and in clean_csv its called "Bolivia" so the join will fail silently over this case ): 
+
+# The problem is our primary key (Identifier) is different between the two DSs one uses iso 3 and the other uses iso 2 BUT!
+
+# our solution will come from the library called "library(countrycode)" which can change iso 2 to iso 3 or vice versa
+
+library(countrycode)
+
+clean_csv <- my_csv %>%
+  
+  #Also lets clean out the totals rows that start with the string pattern "ZZ"
+  
+  filter(!str_detect(iso3, "^ZZ")) %>%         
+  
+  select(iso3, country, gii_2010, gii_2019) %>%
+  
+  mutate(diff_2019_2010 = gii_2019 - gii_2010,iso2 = countrycode(iso3, origin = "iso3c", destination = "iso2c")) %>%
+  filter(!is.na(diff_2019_2010))
+
+clean_csv
+
+# Join on ISO codes instead of names
+
+final_map <- world_countries |>
+  left_join(clean_csv, by = c("ISO" = "iso2"))
+
+final_map
+
+
+
+sum(is.na(final_map$diff_2019_2010))
+```
+
+```{r}
+#Lets Plot a simple map
+
+library(tmap)
+
+tmap_mode("plot")
+
+tm_shape(final_map) +
+  tm_polygons(fill = "diff_2019_2010") +
+  tm_title("Change in Gender Inequality Index, 2010–2019")
+
+#I know its not the best MAP but it is suffiecient enough :)))
+```
